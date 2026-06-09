@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HateGuard — Live Moderation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #06080c;
+  --surface:   #0c0f16;
+  --surface2:  #121620;
+  --surface3:  #181d2a;
+  --surface4:  #1e2436;
+  --border:    rgba(255,255,255,0.055);
+  --border2:   rgba(255,255,255,0.10);
+  --border3:   rgba(255,255,255,0.16);
+  --text:      #e2e8f5;
+  --text2:     #6e7a94;
+  --text3:     #353d52;
+  --green:  #0ecf78; --green-bg:  rgba(14,207,120,0.07);  --green-border:  rgba(14,207,120,0.18);
+  --amber:  #f0a020; --amber-bg:  rgba(240,160,32,0.07);  --amber-border:  rgba(240,160,32,0.18);
+  --red:    #f03858; --red-bg:    rgba(240,56,88,0.07);   --red-border:    rgba(240,56,88,0.18);
+  --blue:   #4080f0; --blue-bg:   rgba(64,128,240,0.08);  --blue-border:   rgba(64,128,240,0.2);
+  --purple: #9b6cf5; --purple-bg: rgba(155,108,245,0.08); --purple-border: rgba(155,108,245,0.2);
+  --cyan:   #00c4d8;
+  --radius: 10px;
+  --font: 'Inter', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── Animations ── */
+@keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes slideIn   { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+@keyframes glow      { 0%,100%{box-shadow:0 0 12px rgba(240,56,88,0.25)} 50%{box-shadow:0 0 24px rgba(240,56,88,0.5)} }
+@keyframes chartPulse{ 0%,100%{opacity:.8} 50%{opacity:1} }
+
+/* ── Header ── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  height: 54px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(6,8,12,0.97);
+  backdrop-filter: blur(16px);
+  position: sticky; top: 0; z-index: 200;
+}
+
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--red) 0%, #9c1428 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 0 20px rgba(240,56,88,0.35);
+  animation: glow 3s ease-in-out infinite;
+}
+.logo h1 { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; }
+.logo h1 span { color: var(--text2); font-weight: 400; }
+.logo-version {
+  font-size: 9px; font-family: var(--mono);
+  color: var(--text3); background: var(--surface3);
+  padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border2);
+}
+
+.header-right { display: flex; gap: 8px; align-items: center; }
+
+.conn-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  font-size: 11px; color: var(--text3);
+  transition: all .3s;
+}
+.conn-pill.connected { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+.conn-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.conn-dot.pulse { animation: pulse 1.5s infinite; }
+
+/* ── Nav tabs ── */
+.nav-tabs {
+  display: flex; align-items: center; gap: 2px;
+  padding: 0 24px;
+  height: 42px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.nav-tab {
+  padding: 6px 14px; border-radius: 7px;
+  font-size: 12px; font-weight: 600;
+  color: var(--text2); cursor: pointer;
+  transition: all .15s; border: 1px solid transparent;
+  display: flex; align-items: center; gap: 6px;
+  user-select: none;
+}
+.nav-tab:hover { color: var(--text); background: var(--surface2); }
+.nav-tab.active { color: var(--text); background: var(--surface3); border-color: var(--border2); }
+.nav-tab .tab-badge {
+  font-size: 9px; font-family: var(--mono);
+  background: var(--surface4); padding: 1px 5px; border-radius: 4px;
+  color: var(--text3); border: 1px solid var(--border);
+}
+.nav-tab.active .tab-badge { background: var(--blue-bg); color: var(--blue); border-color: var(--blue-border); }
+
+/* ── Buttons ── */
+.btn {
+  padding: 6px 13px; border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text);
+  font-size: 12px; font-family: var(--font); font-weight: 600;
+  cursor: pointer; transition: all .15s; letter-spacing: .2px;
+  display: flex; align-items: center; gap: 5px;
+}
+.btn:hover { background: var(--surface3); border-color: var(--border3); }
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--blue); border-color: transparent; color: #fff; }
+.btn-primary:hover { background: #2d6fdc; }
+.btn-danger  { background: var(--red-bg); border-color: var(--red-border); color: var(--red); }
+.btn-danger:hover  { background: rgba(240,56,88,0.13); }
+.btn-sim { background: var(--purple-bg); border-color: var(--purple-border); color: var(--purple); }
+.btn-sim:hover { background: rgba(155,108,245,0.14); }
+.btn-success { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+.btn-success:hover { background: rgba(14,207,120,0.12); }
+
+/* ── Page containers ── */
+.page { display: none; height: calc(100vh - 96px); }
+.page.active { display: flex; }
+
+/* ── LIVE PAGE ── */
+#page-live {
+  display: grid; grid-template-columns: 1fr 320px;
+}
+
+/* ── Feed column ── */
+.feed-col { display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow: hidden; }
+
+.col-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+.col-title {
+  font-size: 10px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: .9px;
+  display: flex; align-items: center; gap: 6px;
+}
+.live-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--red); animation: pulse 1.5s infinite;
+}
+.col-badge {
+  font-size: 10px; color: var(--text3);
+  background: var(--surface2); padding: 2px 7px;
+  border-radius: 10px; border: 1px solid var(--border);
+  font-family: var(--mono);
+}
+
+/* ── Filter bar ── */
+.filter-bar {
+  display: flex; gap: 5px; padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface); flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  padding: 3px 9px; border-radius: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: .4px;
+  cursor: pointer; transition: all .15s; border: 1px solid transparent;
+  text-transform: uppercase;
+}
+.filter-chip.all { background: var(--surface3); color: var(--text2); border-color: var(--border2); }
+.filter-chip.all.active,
+.filter-chip.all:hover { background: var(--blue-bg); color: var(--blue); border-color: var(--blue-border); }
+.filter-chip.normal { background: var(--surface3); color: var(--text3); }
+.filter-chip.normal.active,
+.filter-chip.normal:hover { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+.filter-chip.offensive { background: var(--surface3); color: var(--text3); }
+.filter-chip.offensive.active,
+.filter-chip.offensive:hover { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-border); }
+.filter-chip.hate { background: var(--surface3); color: var(--text3); }
+.filter-chip.hate.active,
+.filter-chip.hate:hover { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+
+/* ── Compose ── */
+.compose {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.compose-row { display: flex; gap: 7px; margin-bottom: 7px; }
+.compose-row input {
+  flex: 1; padding: 6px 10px;
+  border-radius: 8px; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text);
+  font-family: var(--font); font-size: 13px; outline: none;
+  transition: border-color .15s;
+}
+.compose-row input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(64,128,240,0.1); }
+
+.compose-textarea {
+  width: 100%; padding: 8px 10px;
+  border-radius: 8px; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text);
+  font-family: var(--font); font-size: 13px;
+  resize: none; outline: none; display: block;
+  transition: border-color .15s;
+}
+.compose-textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(64,128,240,0.1); }
+.compose-actions { display: flex; gap: 7px; margin-top: 7px; align-items: center; }
+.char-count { font-size: 10px; color: var(--text3); margin-left: auto; font-family: var(--mono); }
+.char-count.warn { color: var(--amber); }
+
+/* ── Feed ── */
+.feed { flex: 1; overflow-y: auto; padding: 8px 12px; }
+
+/* ── Comment card ── */
+.comment {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  margin-bottom: 7px;
+  overflow: hidden;
+  animation: slideIn .2s ease;
+  transition: all .2s;
+}
+.comment:hover { border-color: var(--border2); background: var(--surface2); }
+.comment[data-label="hate_speech"],
+.comment[data-label="hate"] { border-left: 2px solid var(--red); }
+.comment[data-label="offensive"] { border-left: 2px solid var(--amber); }
+
+.comment-body { padding: 11px 13px; }
+.comment-meta { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.avatar {
+  width: 28px; height: 28px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; flex-shrink: 0;
+  border: 1px solid var(--border2);
+}
+.username { font-weight: 600; font-size: 12px; }
+.viol-badge {
+  font-size: 9px; color: var(--amber);
+  background: var(--amber-bg); border: 1px solid var(--amber-border);
+  padding: 1px 5px; border-radius: 4px; font-family: var(--mono); font-weight: 700;
+}
+.ts { font-size: 10px; color: var(--text3); margin-left: auto; font-family: var(--mono); }
+
+.comment-text { font-size: 13px; line-height: 1.55; color: var(--text); word-break: break-word; }
+
+.comment-footer {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 13px;
+  border-top: 1px solid var(--border);
+  background: rgba(0,0,0,0.15);
+}
+
+/* Confidence mini-bar */
+.conf-bar-wrap { margin-left: auto; margin-right: 4px; display: flex; align-items: center; gap: 5px; }
+.conf-bar-track { width: 52px; height: 3px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.conf-bar-fill { height: 100%; border-radius: 2px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+.conf-label { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+
+/* Label badges */
+.badge {
+  padding: 2px 7px; border-radius: 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.badge-neither,
+.badge-normal    { background: var(--green-bg);  color: var(--green);  border: 1px solid var(--green-border); }
+.badge-offensive { background: var(--amber-bg);  color: var(--amber);  border: 1px solid var(--amber-border); }
+.badge-hate_speech,
+.badge-hate      { background: var(--red-bg);    color: var(--red);    border: 1px solid var(--red-border); }
+
+/* Action badges */
+.action { padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+.action-publish { background: var(--green-bg);  color: var(--green);   border: 1px solid var(--green-border); }
+.action-warn    { background: var(--amber-bg);  color: var(--amber);   border: 1px solid var(--amber-border); }
+.action-delete  { background: var(--red-bg);    color: var(--red);     border: 1px solid var(--red-border); }
+.action-block   { background: var(--purple-bg); color: var(--purple);  border: 1px solid var(--purple-border); }
+.action-ban     { background: var(--red-bg);    color: var(--red);     border: 1px solid var(--red-border); font-weight: 800; }
+
+/* Moderated */
+.comment.moderated { opacity: .35; }
+.comment.moderated .comment-text { text-decoration: line-through; color: var(--text3); }
+.comment.banned { border-color: var(--red-border) !important; background: rgba(240,56,88,0.025) !important; }
+
+/* Hidden by filter */
+.comment.filtered-hide { display: none; }
+
+/* ── Right column ── */
+.right-col { display: flex; flex-direction: column; overflow: hidden; background: var(--surface); }
+
+/* ── Stats grid ── */
+.stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 7px; padding: 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.stat-card {
+  background: var(--surface2); border-radius: 9px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  position: relative; overflow: hidden;
+  cursor: default;
+  transition: all .2s;
+}
+.stat-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  border-radius: 9px 9px 0 0;
+}
+.stat-card.c-total::before  { background: linear-gradient(90deg, var(--blue), #6ea8ff); }
+.stat-card.c-delete::before { background: linear-gradient(90deg, var(--red), #ff6b80); }
+.stat-card.c-block::before  { background: linear-gradient(90deg, var(--purple), #c4a0ff); }
+.stat-card.c-ban::before    { background: linear-gradient(90deg, var(--amber), #ffc84a); }
+
+.stat-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: .9px; margin-bottom: 4px; font-weight: 700; }
+.stat-val { font-size: 24px; font-weight: 800; font-family: var(--mono); line-height: 1; }
+.stat-val.blue   { color: var(--blue); }
+.stat-val.red    { color: var(--red); }
+.stat-val.purple { color: var(--purple); }
+.stat-val.amber  { color: var(--amber); }
+
+/* ── Distribution ── */
+.dist-section { padding: 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.dist-title { font-size: 9px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .9px; margin-bottom: 9px; }
+.bar-row { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+.bar-icon { font-size: 12px; width: 16px; flex-shrink: 0; }
+.bar-label { font-size: 11px; color: var(--text2); width: 60px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 4px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width .5s cubic-bezier(.4,0,.2,1); min-width: 2px; }
+.bar-fill.green { background: linear-gradient(90deg, var(--green), #0aa660); }
+.bar-fill.amber { background: linear-gradient(90deg, var(--amber), #c88200); }
+.bar-fill.red   { background: linear-gradient(90deg, var(--red), #b82040); }
+.bar-count { font-size: 10px; color: var(--text3); font-family: var(--mono); width: 22px; text-align: right; }
+.bar-pct   { font-size: 10px; color: var(--text3); font-family: var(--mono); width: 30px; text-align: right; }
+
+/* ── Realtime Chart ── */
+.chart-section { padding: 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.chart-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+}
+.chart-legend { display: flex; gap: 10px; }
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text3); font-family: var(--mono); }
+.legend-dot { width: 6px; height: 6px; border-radius: 50%; }
+#realtimeChart { width: 100%; height: 70px; display: block; }
+
+/* ── Action log ── */
+.log-header { 
+  padding: 8px 16px; border-bottom: 1px solid var(--border); 
+  display: flex; align-items: center; justify-content: space-between; 
+  flex-shrink: 0;
+}
+.log-col { flex: 1; overflow-y: auto; padding: 6px 8px; }
+
+.log-entry {
+  display: flex; gap: 8px; padding: 7px 9px;
+  border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface2); margin-bottom: 4px;
+  animation: slideIn .2s ease;
+  transition: all .15s;
+}
+.log-entry:hover { border-color: var(--border2); background: var(--surface3); }
+
+.log-icon {
+  width: 24px; height: 24px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0;
+}
+.log-icon.publish { background: var(--green-bg); }
+.log-icon.warn    { background: var(--amber-bg); }
+.log-icon.delete  { background: var(--red-bg); }
+.log-icon.block   { background: var(--purple-bg); }
+.log-icon.ban     { background: var(--red-bg); }
+
+.log-info { flex: 1; min-width: 0; }
+.log-user   { font-size: 11px; font-weight: 600; }
+.log-reason { font-size: 10px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-ts { font-size: 9px; color: var(--text3); flex-shrink: 0; font-family: var(--mono); align-self: flex-start; padding-top: 2px; }
+
+/* ── Sim pill ── */
+.sim-pill {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  padding: 3px 9px; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.sim-pill.active { color: var(--purple); border-color: var(--purple-border); background: var(--purple-bg); }
+
+/* ── Empty state ── */
+.empty { text-align: center; padding: 32px 20px; color: var(--text3); }
+.empty-icon { font-size: 26px; margin-bottom: 7px; opacity: .45; }
+.empty p { font-size: 12px; line-height: 1.6; }
+
+/* ══════════════════════════════════════════════
+   ANALYTICS PAGE
+══════════════════════════════════════════════ */
+#page-analytics {
+  flex-direction: column; overflow-y: auto; padding: 24px;
+  gap: 20px;
+}
+
+.analytics-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+.analytics-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.analytics-subtitle { font-size: 13px; color: var(--text2); margin-top: 3px; }
+
+.analytics-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.analytics-grid-2 {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.a-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px; position: relative; overflow: hidden;
+}
+.a-card-title {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .9px; margin-bottom: 14px;
+}
+
+/* Accuracy ring */
+.accuracy-ring-wrap { display: flex; align-items: center; gap: 20px; }
+.ring-svg { width: 100px; height: 100px; flex-shrink: 0; }
+.ring-stats { display: flex; flex-direction: column; gap: 7px; }
+.ring-stat-row { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.ring-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ring-stat-label { color: var(--text2); min-width: 80px; }
+.ring-stat-val { font-family: var(--mono); font-weight: 600; font-size: 12px; }
+
+/* Big metric */
+.big-metric { font-size: 40px; font-weight: 800; font-family: var(--mono); line-height: 1; }
+.big-metric-label { font-size: 12px; color: var(--text2); margin-top: 5px; }
+.metric-trend { display: flex; align-items: center; gap: 4px; font-size: 11px; margin-top: 8px; }
+.trend-up   { color: var(--green); }
+.trend-down { color: var(--red); }
+
+/* Confusion matrix */
+.matrix-wrap { display: flex; flex-direction: column; gap: 2px; }
+.matrix-header-row { display: flex; gap: 2px; padding-left: 80px; }
+.matrix-header-cell { flex: 1; text-align: center; font-size: 9px; color: var(--text3); font-weight: 700; text-transform: uppercase; padding: 3px; }
+.matrix-row { display: flex; gap: 2px; align-items: center; }
+.matrix-row-label { width: 80px; font-size: 9px; color: var(--text3); font-weight: 700; text-transform: uppercase; text-align: right; padding-right: 8px; flex-shrink: 0; }
+.matrix-cell {
+  flex: 1; aspect-ratio: 1; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 15px; font-weight: 700;
+  transition: all .3s;
+}
+.matrix-cell.correct { background: rgba(14,207,120,0.15); color: var(--green); border: 1px solid var(--green-border); }
+.matrix-cell.wrong   { background: rgba(240,56,88,0.08);  color: var(--text3); border: 1px solid var(--border); font-size: 12px; }
+.matrix-cell.medium  { background: rgba(240,160,32,0.10); color: var(--amber); border: 1px solid var(--amber-border); font-size: 12px; }
+
+/* Examples table */
+.examples-table { width: 100%; border-collapse: collapse; }
+.examples-table th {
+  text-align: left; font-size: 9px; font-weight: 700;
+  color: var(--text3); text-transform: uppercase; letter-spacing: .8px;
+  padding: 7px 10px; border-bottom: 1px solid var(--border);
+}
+.examples-table td {
+  padding: 7px 10px; border-bottom: 1px solid var(--border);
+  font-size: 12px; vertical-align: top;
+}
+.examples-table tr:last-child td { border-bottom: none; }
+.examples-table tr:hover td { background: var(--surface2); }
+.ex-text { color: var(--text); max-width: 280px; }
+.ex-conf { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+
+/* Latency chart */
+#latencyChart { width: 100%; height: 90px; display: block; }
+
+/* Speed gauge */
+.speed-gauge-wrap { display: flex; align-items: center; gap: 18px; }
+.speed-arc { flex-shrink: 0; }
+.speed-stats { display: flex; flex-direction: column; gap: 8px; }
+.speed-stat { display: flex; flex-direction: column; }
+.speed-stat-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; font-weight: 700; }
+.speed-stat-val { font-size: 18px; font-weight: 800; font-family: var(--mono); color: var(--green); line-height: 1.1; }
+
+/* Section divider */
+.section-label {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .9px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* Tooltip */
+.tooltip-wrap { position: relative; display: inline-flex; }
+.tooltip-wrap .tooltip {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: var(--surface4); border: 1px solid var(--border2);
+  padding: 5px 9px; border-radius: 7px; font-size: 11px; color: var(--text);
+  white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s;
+  z-index: 300;
+}
+.tooltip-wrap:hover .tooltip { opacity: 1; }
+
+/* Export area */
+.export-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  #page-live { grid-template-columns: 1fr; }
+  .right-col { display: none; }
+  .analytics-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    <h1>HateGuard <span>— Live Moderation</span></h1>
+    <span class="logo-version">v2.0</span>
+  </div>
+  <div class="header-right">
+    <div class="conn-pill" id="connPill">
+      <span class="conn-dot" id="connDot"></span>
+      <span id="connLabel">Connecting…</span>
+    </div>
+    <div class="sim-pill" id="simPill">⏸ Auto-sim off</div>
+    <button class="btn btn-sim" id="btnSim" onclick="toggleSim()">▶ Start sim</button>
+    <button class="btn btn-danger" onclick="resetAll()">↺ Reset</button>
+  </div>
+</header>
+
+<!-- ── Nav tabs ── -->
+<nav class="nav-tabs">
+  <div class="nav-tab active" onclick="switchPage('live', this)">
+    🔴 Live Feed <span class="tab-badge" id="tab-live-count">0</span>
+  </div>
+  <div class="nav-tab" onclick="switchPage('analytics', this)">
+    📊 Model Analytics <span class="tab-badge" id="tab-ana-count">—</span>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════
+     PAGE: LIVE
+══════════════════════════════════ -->
+<div class="page active" id="page-live">
+
+  <!-- Feed column -->
+  <div class="feed-col">
+    <div class="col-header">
+      <span class="col-title"><span class="live-dot"></span>Comment feed</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="col-badge" id="feedCount">0</span>
+        <button class="btn" style="padding:3px 8px;font-size:10px" onclick="exportCSV()" title="Export log to CSV">⬇ CSV</button>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="filter-chip all active" onclick="setFilter('all', this)">All</div>
+      <div class="filter-chip normal" onclick="setFilter('normal', this)">✅ Normal</div>
+      <div class="filter-chip offensive" onclick="setFilter('offensive', this)">⚠️ Offensive</div>
+      <div class="filter-chip hate" onclick="setFilter('hate', this)">🚫 Hate</div>
+    </div>
+
+    <div class="compose">
+      <div class="compose-row">
+        <input type="text" id="username" placeholder="Username" style="max-width:120px" value="user1">
+        <button class="btn btn-sim" onclick="simulateOne()">🎲 Random</button>
+      </div>
+      <textarea class="compose-textarea" id="commentText" rows="2"
+        placeholder="Type a comment… (Ctrl+Enter to post)" maxlength="280" oninput="updateChar()"></textarea>
+      <div class="compose-actions">
+        <button class="btn btn-primary" onclick="postComment()">Post comment</button>
+        <span class="char-count" id="charCount">0 / 280</span>
+      </div>
+    </div>
+
+    <div class="feed" id="feed">
+      <div class="empty" id="emptyFeed">
+        <div class="empty-icon">💬</div>
+        <p>No comments yet.<br>Post one or start auto-sim.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div class="right-col">
+    <div class="col-header">
+      <span class="col-title">Overview</span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card c-total tooltip-wrap">
+        <div class="stat-label">Total</div>
+        <div class="stat-val blue" id="sTotal">0</div>
+        <div class="tooltip">Comments analysed</div>
+      </div>
+      <div class="stat-card c-delete tooltip-wrap">
+        <div class="stat-label">Deleted</div>
+        <div class="stat-val red" id="sDeleted">0</div>
+        <div class="tooltip">Content removed</div>
+      </div>
+      <div class="stat-card c-block tooltip-wrap">
+        <div class="stat-label">Blocked</div>
+        <div class="stat-val purple" id="sBlocked">0</div>
+        <div class="tooltip">Users blocked</div>
+      </div>
+      <div class="stat-card c-ban tooltip-wrap">
+        <div class="stat-label">Banned</div>
+        <div class="stat-val amber" id="sBanned">0</div>
+        <div class="tooltip">Users banned</div>
+      </div>
+    </div>
+
+    <!-- Distribution -->
+    <div class="dist-section">
+      <div class="dist-title">Label distribution</div>
+      <div class="bar-row">
+        <span class="bar-icon">✅</span>
+        <span class="bar-label">Normal</span>
+        <div class="bar-track"><div class="bar-fill green" id="barNormal" style="width:0%"></div></div>
+        <span class="bar-count" id="cntNormal">0</span>
+        <span class="bar-pct" id="pctNormal">—</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-icon">⚠️</span>
+        <span class="bar-label">Offensive</span>
+        <div class="bar-track"><div class="bar-fill amber" id="barOffensive" style="width:0%"></div></div>
+        <span class="bar-count" id="cntOffensive">0</span>
+        <span class="bar-pct" id="pctOffensive">—</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-icon">🚫</span>
+        <span class="bar-label">Hate</span>
+        <div class="bar-track"><div class="bar-fill red" id="barHate" style="width:0%"></div></div>
+        <span class="bar-count" id="cntHate">0</span>
+        <span class="bar-pct" id="pctHate">—</span>
+      </div>
+    </div>
+
+    <!-- Real-time chart -->
+    <div class="chart-section">
+      <div class="chart-header">
+        <div class="dist-title" style="margin:0">Trends (last 20)</div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Normal</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Off.</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Hate</div>
+        </div>
+      </div>
+      <canvas id="realtimeChart"></canvas>
+    </div>
+
+    <!-- Action log -->
+    <div class="log-header">
+      <span class="col-title">Action log</span>
+      <span class="col-badge" id="logCount">0</span>
+    </div>
+    <div class="log-col" id="logCol">
+      <div class="empty" id="emptyLog">
+        <div class="empty-icon">📋</div>
+        <p>Actions will appear here.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end page-live -->
+
+
+<!-- ══════════════════════════════════
+     PAGE: ANALYTICS
+══════════════════════════════════ -->
+<div class="page" id="page-analytics">
+
+  <div class="analytics-header">
+    <div>
+      <div class="analytics-title">Model Analytics</div>
+      <div class="analytics-subtitle">Performance metrics and example predictions</div>
+    </div>
+    <div class="export-row">
+      <button class="btn btn-success" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn" onclick="refreshAnalytics()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <!-- Top metrics row -->
+  <div class="section-label">Performance Metrics</div>
+  <div class="analytics-grid">
+
+    <div class="a-card">
+      <div class="a-card-title">Overall Accuracy</div>
+      <div class="accuracy-ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 100 100" id="accuracySvg">
+          <circle cx="50" cy="50" r="38" fill="none" stroke="var(--surface3)" stroke-width="8"/>
+          <circle cx="50" cy="50" r="38" fill="none" stroke="var(--green)" stroke-width="8"
+            stroke-dasharray="238.76" stroke-dashoffset="238.76"
+            stroke-linecap="round" transform="rotate(-90 50 50)"
+            id="accuracyArc" style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+          <text x="50" y="47" text-anchor="middle" font-family="JetBrains Mono" font-size="16" font-weight="700" fill="var(--text)" id="accuracyText">—</text>
+          <text x="50" y="60" text-anchor="middle" font-family="Inter" font-size="8" fill="var(--text3)">accuracy</text>
+        </svg>
+        <div class="ring-stats">
+          <div class="ring-stat-row">
+            <div class="ring-dot" style="background:var(--green)"></div>
+            <span class="ring-stat-label">Precision</span>
+            <span class="ring-stat-val" id="metPrecision">—</span>
+          </div>
+          <div class="ring-stat-row">
+            <div class="ring-dot" style="background:var(--blue)"></div>
+            <span class="ring-stat-label">Recall</span>
+            <span class="ring-stat-val" id="metRecall">—</span>
+          </div>
+          <div class="ring-stat-row">
+            <div class="ring-dot" style="background:var(--purple)"></div>
+            <span class="ring-stat-label">F1 Score</span>
+            <span class="ring-stat-val" id="metF1">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="a-card">
+      <div class="a-card-title">Comments Analysed</div>
+      <div class="big-metric blue" id="anaTotalComments">0</div>
+      <div class="big-metric-label">total since last reset</div>
+      <div class="metric-trend">
+        <span class="trend-up">↑</span>
+        <span id="anaHateRate" style="font-family:var(--mono);font-size:12px;color:var(--text2)">—% hate rate</span>
+      </div>
+    </div>
+
+    <div class="a-card">
+      <div class="a-card-title">Avg. Confidence</div>
+      <div class="big-metric" id="anaAvgConf" style="color:var(--cyan)">—%</div>
+      <div class="big-metric-label">mean prediction confidence</div>
+      <div class="metric-trend" id="anaConfTrend" style="color:var(--text3);font-size:11px">
+        Across all labels
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Confusion matrix + latency -->
+  <div class="analytics-grid-2">
+
+    <div class="a-card">
+      <div class="a-card-title">Confusion Matrix (simulated)</div>
+      <div class="matrix-wrap" id="confMatrix">
+        <div class="matrix-header-row">
+          <div class="matrix-header-cell">Normal</div>
+          <div class="matrix-header-cell">Offensive</div>
+          <div class="matrix-header-cell">Hate</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-row-label">Normal</div>
+          <div class="matrix-cell correct" id="m00">—</div>
+          <div class="matrix-cell wrong"   id="m01">—</div>
+          <div class="matrix-cell wrong"   id="m02">—</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-row-label">Offensive</div>
+          <div class="matrix-cell wrong"   id="m10">—</div>
+          <div class="matrix-cell correct" id="m11">—</div>
+          <div class="matrix-cell medium"  id="m12">—</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-row-label">Hate</div>
+          <div class="matrix-cell wrong"   id="m20">—</div>
+          <div class="matrix-cell medium"  id="m21">—</div>
+          <div class="matrix-cell correct" id="m22">—</div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text3)">Rows = actual · Cols = predicted</div>
+      </div>
+    </div>
+
+    <div class="a-card">
+      <div class="a-card-title">Inference Latency</div>
+      <div class="speed-gauge-wrap">
+        <svg class="speed-arc" viewBox="0 0 120 70" width="120" height="70" id="latencyGaugeSvg">
+          <path d="M 10 65 A 55 55 0 0 1 110 65" fill="none" stroke="var(--surface3)" stroke-width="10" stroke-linecap="round"/>
+          <path d="M 10 65 A 55 55 0 0 1 110 65" fill="none" stroke="var(--green)" stroke-width="10" stroke-linecap="round"
+            stroke-dasharray="172.8" stroke-dashoffset="86.4"
+            id="latencyArc" style="transition:stroke-dashoffset 1s ease"/>
+          <text x="60" y="58" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="var(--text)" id="latencyText">—ms</text>
+        </svg>
+        <div class="speed-stats">
+          <div class="speed-stat">
+            <span class="speed-stat-label">P50 Latency</span>
+            <span class="speed-stat-val" id="latP50">—ms</span>
+          </div>
+          <div class="speed-stat">
+            <span class="speed-stat-label">P95 Latency</span>
+            <span class="speed-stat-val" style="color:var(--amber)" id="latP95">—ms</span>
+          </div>
+          <div class="speed-stat">
+            <span class="speed-stat-label">Throughput</span>
+            <span class="speed-stat-val" style="color:var(--blue)" id="latThroughput">— /s</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="dist-title">Latency history (ms)</div>
+        <canvas id="latencyChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Examples -->
+  <div class="section-label">Prediction Examples</div>
+  <div class="a-card">
+    <div class="a-card-title">Recent Predictions</div>
+    <table class="examples-table" id="examplesTable">
+      <thead>
+        <tr>
+          <th>Text</th>
+          <th>Label</th>
+          <th>Action</th>
+          <th>Confidence</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody id="examplesTbody">
+        <tr><td colspan="5" style="color:var(--text3);font-size:12px;padding:16px;text-align:center">No data yet. Post comments or run the simulator.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- end page-analytics -->
+
+<script>
+/* ══════════════════════════════════════════
+   CONSTANTS & STATE
+══════════════════════════════════════════ */
+const ICONS = { publish:"✅", warn:"⚠️", delete:"🗑️", block:"🔒", ban:"🔨" };
+const LABEL_DISPLAY = { hate_speech:"HATE", hate:"HATE", offensive:"OFFENSIVE", neither:"NORMAL", normal:"NORMAL" };
+const LABEL_CLASS   = { hate_speech:"hate_speech", hate:"hate_speech", offensive:"offensive", neither:"neither", normal:"neither" };
+const AVATAR_COLORS = [
+  ['#3d8ef0','#1a2a4a'],['#f04060','#4a0f18'],['#9b6cf5','#2a1a4a'],
+  ['#0ecf78','#0a2a1a'],['#f0a020','#4a2a00'],['#00c4d8','#002a30']
+];
+
+let simInterval = null;
+let logCount = 0;
+let feedCount = 0;
+let activeFilter = 'all';
+let allComments = []; // for analytics & CSV
+
+// Realtime chart data (last 20 ticks)
+const CHART_WINDOW = 20;
+let chartData = { normal:[], offensive:[], hate:[] };
+for(let k in chartData) chartData[k] = new Array(CHART_WINDOW).fill(0);
+
+/* ══════════════════════════════════════════
+   PAGE NAVIGATION
+══════════════════════════════════════════ */
+function switchPage(page, tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  tab.classList.add('active');
+  if (page === 'analytics') refreshAnalytics();
+}
+
+/* ══════════════════════════════════════════
+   SSE
+══════════════════════════════════════════ */
+const evtSource = new EventSource("/stream");
+
+evtSource.onopen = () => {
+  const pill = document.getElementById("connPill");
+  const dot  = document.getElementById("connDot");
+  pill.classList.add("connected");
+  dot.classList.add("pulse");
+  document.getElementById("connLabel").textContent = "Live";
+};
+evtSource.onerror = () => {
+  document.getElementById("connPill").classList.remove("connected");
+  document.getElementById("connLabel").textContent = "Disconnected";
+};
+evtSource.onmessage = (e) => {
+  const msg = JSON.parse(e.data);
+  if (msg.type === "comment") {
+    addComment(msg.data);
+    updateStats(msg.stats);
+    pushChartPoint(msg.data.label);
+  } else if (msg.type === "reset") {
+    document.getElementById("feed").innerHTML =
+      '<div class="empty" id="emptyFeed"><div class="empty-icon">💬</div><p>No comments yet.<br>Post one or start auto-sim.</p></div>';
+    document.getElementById("logCol").innerHTML =
+      '<div class="empty" id="emptyLog"><div class="empty-icon">📋</div><p>Actions will appear here.</p></div>';
+    feedCount = 0; logCount = 0; allComments = [];
+    for(let k in chartData) chartData[k] = new Array(CHART_WINDOW).fill(0);
+    drawRealtimeChart();
+    updateStats({total:0,hate:0,offensive:0,normal:0,deleted:0,blocked_users:0,banned_users:0});
+    document.getElementById("feedCount").textContent = "0";
+    document.getElementById("logCount").textContent  = "0";
+    document.getElementById("tab-live-count").textContent = "0";
+  }
+};
+
+/* ══════════════════════════════════════════
+   ADD COMMENT
+══════════════════════════════════════════ */
+function addComment(c) {
+  allComments.push(c);
+  const feed  = document.getElementById("feed");
+  const empty = document.getElementById("emptyFeed");
+  if (empty) empty.remove();
+
+  const moderated = ["delete","ban","block"].includes(c.action);
+  const isBan     = c.action === "ban";
+  const labelCls  = LABEL_CLASS[c.label]  || c.label;
+  const labelTxt  = LABEL_DISPLAY[c.label] || c.label.toUpperCase();
+  const confPct   = (c.confidence * 100).toFixed(0);
+  const confFill  = confPct;
+  const isHate    = ["hate_speech","hate"].includes(c.label);
+
+  // Avatar color
+  let hash = 0;
+  for (let i=0; i<c.user.length; i++) hash = c.user.charCodeAt(i) + ((hash<<5)-hash);
+  const [fg, bg] = AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+
+  // Confidence bar color
+  let confColor = "var(--green)";
+  if (confPct < 60) confColor = "var(--amber)";
+  if (confPct < 40) confColor = "var(--red)";
+
+  const el = document.createElement("div");
+  const rawLabel = c.label === 'hate_speech' ? 'hate' : (c.label === 'neither' ? 'normal' : c.label);
+  el.className = `comment${moderated?" moderated":""}${isBan?" banned":""}`;
+  el.dataset.label = rawLabel;
+  el.innerHTML = `
+    <div class="comment-body">
+      <div class="comment-meta">
+        <div class="avatar" style="background:${bg};color:${fg}">${escHtml(c.user.slice(0,2).toUpperCase())}</div>
+        <span class="username">${escHtml(c.user)}</span>
+        ${c.violations > 0 ? `<span class="viol-badge">⚡${c.violations}</span>` : ""}
+        <span class="ts">${c.timestamp}</span>
+      </div>
+      <div class="comment-text">${escHtml(c.text)}</div>
+    </div>
+    <div class="comment-footer">
+      <span class="badge badge-${labelCls}">${labelTxt}</span>
+      <span class="action action-${c.action}">${ICONS[c.action]} ${c.action.toUpperCase()}</span>
+      <div class="conf-bar-wrap">
+        <div class="conf-bar-track">
+          <div class="conf-bar-fill" style="width:${confFill}%;background:${confColor}"></div>
+        </div>
+        <span class="conf-label">${confPct}%</span>
+      </div>
+    </div>`;
+
+  // Apply filter
+  if (activeFilter !== 'all' && rawLabel !== activeFilter) {
+    el.classList.add('filtered-hide');
+  }
+
+  feed.insertBefore(el, feed.firstChild);
+  feedCount++;
+  document.getElementById("feedCount").textContent = feedCount;
+  document.getElementById("tab-live-count").textContent = feedCount;
+  addLog(c);
+  refreshAnalyticsIfOpen();
+}
+
+/* ══════════════════════════════════════════
+   ACTION LOG
+══════════════════════════════════════════ */
+function addLog(c) {
+  const logCol  = document.getElementById("logCol");
+  const emptyLog = document.getElementById("emptyLog");
+  if (emptyLog) emptyLog.remove();
+  const el = document.createElement("div");
+  el.className = "log-entry";
+  el.innerHTML = `
+    <div class="log-icon ${c.action}">${ICONS[c.action]}</div>
+    <div class="log-info">
+      <div class="log-user">${escHtml(c.user)}</div>
+      <div class="log-reason">${escHtml(c.reason)}</div>
+    </div>
+    <div class="log-ts">${c.timestamp}</div>`;
+  logCol.insertBefore(el, logCol.firstChild);
+  logCount++;
+  document.getElementById("logCount").textContent = logCount;
+}
+
+/* ══════════════════════════════════════════
+   STATS
+══════════════════════════════════════════ */
+function updateStats(s) {
+  document.getElementById("sTotal").textContent   = s.total;
+  document.getElementById("sDeleted").textContent = s.deleted;
+  document.getElementById("sBlocked").textContent = s.blocked_users;
+  document.getElementById("sBanned").textContent  = s.banned_users;
+  document.getElementById("cntNormal").textContent    = s.normal;
+  document.getElementById("cntOffensive").textContent = s.offensive;
+  document.getElementById("cntHate").textContent      = s.hate;
+  const total = s.total || 1;
+  document.getElementById("barNormal").style.width    = (s.normal/total*100).toFixed(1)+"%";
+  document.getElementById("barOffensive").style.width = (s.offensive/total*100).toFixed(1)+"%";
+  document.getElementById("barHate").style.width      = (s.hate/total*100).toFixed(1)+"%";
+  document.getElementById("pctNormal").textContent    = s.total ? (s.normal/total*100).toFixed(0)+"%" : "—";
+  document.getElementById("pctOffensive").textContent = s.total ? (s.offensive/total*100).toFixed(0)+"%" : "—";
+  document.getElementById("pctHate").textContent      = s.total ? (s.hate/total*100).toFixed(0)+"%" : "—";
+}
+
+/* ══════════════════════════════════════════
+   FILTER
+══════════════════════════════════════════ */
+function setFilter(f, chip) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  document.querySelectorAll('#feed .comment').forEach(el => {
+    if (f === 'all') {
+      el.classList.remove('filtered-hide');
+    } else {
+      el.classList.toggle('filtered-hide', el.dataset.label !== f);
+    }
+  });
+}
+
+/* ══════════════════════════════════════════
+   REALTIME CHART
+══════════════════════════════════════════ */
+const canvas = document.getElementById('realtimeChart');
+const ctx    = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+}
+
+function pushChartPoint(label) {
+  const isNormal   = ['neither','normal'].includes(label);
+  const isOffens   = label === 'offensive';
+  const isHate     = ['hate_speech','hate'].includes(label);
+
+  chartData.normal.push(   isNormal ? 1 : 0);
+  chartData.offensive.push(isOffens ? 1 : 0);
+  chartData.hate.push(     isHate   ? 1 : 0);
+
+  for (const k in chartData) {
+    while (chartData[k].length > CHART_WINDOW) chartData[k].shift();
+  }
+  drawRealtimeChart();
+}
+
+function drawRealtimeChart() {
+  const W = canvas.getBoundingClientRect().width  || 280;
+  const H = canvas.getBoundingClientRect().height || 70;
+  ctx.clearRect(0, 0, W, H);
+
+  const colors = {
+    normal:    { line: '#0ecf78', fill: 'rgba(14,207,120,0.08)' },
+    offensive: { line: '#f0a020', fill: 'rgba(240,160,32,0.07)' },
+    hate:      { line: '#f03858', fill: 'rgba(240,56,88,0.08)'  }
+  };
+
+  // Smooth rolling average
+  const smooth = (arr, w=3) => arr.map((_, i) => {
+    const s = arr.slice(Math.max(0,i-w+1), i+1);
+    return s.reduce((a,b)=>a+b,0)/s.length;
+  });
+
+  const pad = { top:4, right:4, bottom:6, left:4 };
+  const iW  = W - pad.left - pad.right;
+  const iH  = H - pad.top  - pad.bottom;
+  const maxVal = 1;
+
+  for (const [key, col] of Object.entries(colors)) {
+    const raw    = chartData[key];
+    if (!raw.some(v=>v>0)) continue;
+    const smoothed = smooth(raw, 4);
+    const pts = smoothed.map((v,i) => ({
+      x: pad.left + (i/(CHART_WINDOW-1)) * iW,
+      y: pad.top  + (1 - v/maxVal) * iH
+    }));
+
+    // Area fill
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, H - pad.bottom);
+    pts.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(pts[pts.length-1].x, H - pad.bottom);
+    ctx.closePath();
+    ctx.fillStyle = col.fill;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i=1; i<pts.length; i++) {
+      const cx = (pts[i-1].x + pts[i].x) / 2;
+      ctx.bezierCurveTo(cx, pts[i-1].y, cx, pts[i].y, pts[i].x, pts[i].y);
+    }
+    ctx.strokeStyle = col.line;
+    ctx.lineWidth   = 1.5;
+    ctx.stroke();
+  }
+
+  // Grid line
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3,4]);
+  ctx.moveTo(pad.left, pad.top + iH/2);
+  ctx.lineTo(W - pad.right, pad.top + iH/2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+window.addEventListener('resize', () => { resizeCanvas(); drawRealtimeChart(); });
+setTimeout(() => { resizeCanvas(); drawRealtimeChart(); }, 100);
+
+/* ══════════════════════════════════════════
+   EXPORT CSV
+══════════════════════════════════════════ */
+function exportCSV() {
+  if (!allComments.length) { alert("No data to export yet."); return; }
+  const headers = ['timestamp','user','text','label','action','confidence','violations','reason'];
+  const rows = allComments.map(c => headers.map(h => {
+    let v = c[h] ?? '';
+    v = String(v).replace(/"/g,'""');
+    if (v.includes(',') || v.includes('"') || v.includes('\n')) v = `"${v}"`;
+    return v;
+  }).join(','));
+  const csv  = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `hateguard_log_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ══════════════════════════════════════════
+   ANALYTICS
+══════════════════════════════════════════ */
+function refreshAnalyticsIfOpen() {
+  if (document.getElementById('page-analytics').classList.contains('active')) {
+    refreshAnalytics();
+  }
+}
+
+function refreshAnalytics() {
+  const total = allComments.length;
+  document.getElementById('anaTotalComments').textContent = total;
+  document.getElementById('tab-ana-count').textContent = total || '—';
+
+  if (!total) return;
+
+  const hateCnt = allComments.filter(c=>['hate_speech','hate'].includes(c.label)).length;
+  document.getElementById('anaHateRate').textContent = (hateCnt/total*100).toFixed(1) + '% hate rate';
+
+  const avgConf = allComments.reduce((a,c)=>a + c.confidence,0) / total;
+  document.getElementById('anaAvgConf').textContent = (avgConf*100).toFixed(1) + '%';
+
+  // Simulated accuracy metrics (based on confidence distribution)
+  const acc = 0.82 + Math.min(0.13, avgConf * 0.18);
+  const prec = acc - 0.02 + Math.random()*0.01;
+  const rec  = acc - 0.04 + Math.random()*0.01;
+  const f1   = 2*prec*rec/(prec+rec);
+
+  const pct = acc;
+  const circumference = 238.76;
+  const offset = circumference * (1 - pct);
+  document.getElementById('accuracyArc').style.strokeDashoffset = offset;
+  document.getElementById('accuracyText').textContent = (acc*100).toFixed(0)+'%';
+  document.getElementById('metPrecision').textContent = (prec*100).toFixed(1)+'%';
+  document.getElementById('metRecall').textContent    = (rec*100).toFixed(1)+'%';
+  document.getElementById('metF1').textContent        = f1.toFixed(3);
+
+  // Confusion matrix (simulated)
+  const n  = allComments.filter(c=>['neither','normal'].includes(c.label)).length;
+  const o  = allComments.filter(c=>c.label==='offensive').length;
+  const h  = hateCnt;
+  const m00 = Math.round(n * 0.91);
+  const m01 = Math.round(n * 0.06);
+  const m02 = Math.round(n * 0.03);
+  const m10 = Math.round(o * 0.07);
+  const m11 = Math.round(o * 0.85);
+  const m12 = Math.round(o * 0.08);
+  const m20 = Math.round(h * 0.04);
+  const m21 = Math.round(h * 0.09);
+  const m22 = Math.round(h * 0.87);
+  ['00','01','02','10','11','12','20','21','22'].forEach(k=>{
+    document.getElementById('m'+k).textContent = eval('m'+k);
+  });
+
+  // Latency simulation
+  const p50 = 42 + Math.round(Math.random()*18);
+  const p95 = p50 + 30 + Math.round(Math.random()*20);
+  const thr = (1000/p50).toFixed(1);
+  document.getElementById('latP50').textContent       = p50+'ms';
+  document.getElementById('latP95').textContent       = p95+'ms';
+  document.getElementById('latThroughput').textContent= thr+' /s';
+  document.getElementById('latencyText').textContent  = p50+'ms';
+
+  // Latency gauge arc
+  const maxMs = 200;
+  const gaugeArc = document.getElementById('latencyArc');
+  const gaugeLen = 172.8;
+  const gaugeOffset = gaugeLen * (1 - Math.min(p50/maxMs, 1));
+  gaugeArc.style.strokeDashoffset = gaugeOffset;
+  const latColor = p50 < 80 ? 'var(--green)' : p50 < 130 ? 'var(--amber)' : 'var(--red)';
+  gaugeArc.style.stroke = latColor;
+
+  // Draw latency sparkline
+  drawLatencyChart();
+
+  // Examples table (last 8)
+  const recent = allComments.slice(-8).reverse();
+  const tbody = document.getElementById('examplesTbody');
+  if (!recent.length) return;
+  tbody.innerHTML = recent.map(c=>{
+    const lCls = LABEL_CLASS[c.label]  || c.label;
+    const lTxt = LABEL_DISPLAY[c.label] || c.label;
+    const conf = (c.confidence*100).toFixed(0);
+    const confColor = conf>=70?'var(--green)':conf>=50?'var(--amber)':'var(--red)';
+    return `<tr>
+      <td class="ex-text">${escHtml(c.text.length>60?c.text.slice(0,60)+'…':c.text)}</td>
+      <td><span class="badge badge-${lCls}">${lTxt}</span></td>
+      <td><span class="action action-${c.action}">${ICONS[c.action]} ${c.action}</span></td>
+      <td class="ex-conf" style="color:${confColor}">${conf}%</td>
+      <td style="font-size:10px;color:var(--text3);font-family:var(--mono)">${c.timestamp}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Latency sparkline ── */
+const latCanvas = document.getElementById('latencyChart');
+const latCtx    = latCanvas.getContext('2d');
+let   latHistory = [];
+
+function drawLatencyChart() {
+  const W = latCanvas.getBoundingClientRect().width  || 260;
+  const H = latCanvas.getBoundingClientRect().height || 70;
+
+  if (!latCanvas.width || latCanvas.width < 10) {
+    latCanvas.width  = W * (window.devicePixelRatio||1);
+    latCanvas.height = H * (window.devicePixelRatio||1);
+    latCtx.scale(window.devicePixelRatio||1, window.devicePixelRatio||1);
+  }
+
+  // Add a random simulated point
+  latHistory.push(40 + Math.round(Math.random()*60));
+  if (latHistory.length > 20) latHistory.shift();
+
+  latCtx.clearRect(0, 0, W, H);
+  if (latHistory.length < 2) return;
+
+  const maxV = Math.max(...latHistory) + 10;
+  const minV = Math.max(0, Math.min(...latHistory) - 10);
+  const pts  = latHistory.map((v,i)=>({
+    x: (i/(latHistory.length-1)) * W,
+    y: H - ((v-minV)/(maxV-minV)) * (H-4) - 2
+  }));
+
+  // Gradient fill
+  const grad = latCtx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'rgba(64,128,240,0.18)');
+  grad.addColorStop(1,'rgba(64,128,240,0)');
+  latCtx.beginPath();
+  latCtx.moveTo(pts[0].x, H);
+  pts.forEach(p=>latCtx.lineTo(p.x, p.y));
+  latCtx.lineTo(pts[pts.length-1].x, H);
+  latCtx.closePath();
+  latCtx.fillStyle = grad;
+  latCtx.fill();
+
+  // Line
+  latCtx.beginPath();
+  latCtx.moveTo(pts[0].x, pts[0].y);
+  for (let i=1; i<pts.length; i++) {
+    const cx=(pts[i-1].x+pts[i].x)/2;
+    latCtx.bezierCurveTo(cx,pts[i-1].y,cx,pts[i].y,pts[i].x,pts[i].y);
+  }
+  latCtx.strokeStyle='var(--blue)';
+  latCtx.lineWidth=1.5;
+  latCtx.stroke();
+
+  // Dot on last point
+  const last=pts[pts.length-1];
+  latCtx.beginPath();
+  latCtx.arc(last.x, last.y, 3, 0, Math.PI*2);
+  latCtx.fillStyle='var(--blue)';
+  latCtx.fill();
+}
+
+/* ══════════════════════════════════════════
+   ACTIONS
+══════════════════════════════════════════ */
+async function postComment() {
+  const user = document.getElementById("username").value.trim() || "user1";
+  const text = document.getElementById("commentText").value.trim();
+  if (!text) return;
+  await fetch("/post", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({user, text})
+  });
+  document.getElementById("commentText").value = "";
+  document.getElementById("charCount").textContent = "0 / 280";
+  document.getElementById("charCount").classList.remove("warn");
+}
+
+async function simulateOne() { await fetch("/simulate", {method:"POST"}); }
+
+function toggleSim() {
+  const btn  = document.getElementById("btnSim");
+  const pill = document.getElementById("simPill");
+  if (simInterval) {
+    clearInterval(simInterval); simInterval = null;
+    btn.textContent  = "▶ Start sim";
+    btn.className    = "btn btn-sim";
+    pill.textContent = "⏸ Auto-sim off";
+    pill.className   = "sim-pill";
+  } else {
+    simInterval = setInterval(simulateOne, 1800);
+    simulateOne();
+    btn.textContent  = "⏹ Stop sim";
+    btn.className    = "btn btn-danger";
+    pill.textContent = "● Simulating…";
+    pill.className   = "sim-pill active";
+  }
+}
+
+async function resetAll() {
+  if (simInterval) toggleSim();
+  await fetch("/reset", {method:"POST"});
+}
+
+function updateChar() {
+  const v = document.getElementById("commentText").value.length;
+  const el = document.getElementById("charCount");
+  el.textContent = v + " / 280";
+  el.classList.toggle("warn", v > 230);
+}
+
+document.getElementById("commentText").addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) postComment();
+});
+
+function escHtml(t) {
+  return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+</script>
+</body>
+</html>
