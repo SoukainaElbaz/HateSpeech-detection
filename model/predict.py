@@ -37,16 +37,12 @@ def _load():
     global _artifacts
     if _artifacts is None:
         pkl_path = os.path.join(BASE_DIR, "model", "hate_speech_model.pkl")
-        print("Loading model from:", pkl_path)
-        print("Exists?", os.path.exists(pkl_path))
         with open(pkl_path, "rb") as f:
             _artifacts = pickle.load(f)
-        print("Model loaded ✔")
     return _artifacts
 
 def predict(text: str):
     a = _load()
-    print("LEX FEATURE NAMES:", a["feature_names"])
     cleaned = clean_tweet(text)
 
     # 1. TF-IDF features (word + char)
