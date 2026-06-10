@@ -1,44 +1,21 @@
-# HateGuard — Live Comment Moderation
+# HateSpeech Detection & Live Moderation System (HateGuard)
 
-Flask app simulating real-time hate speech moderation.
+Flask-based application for **hate speech detection and real-time comment moderation** using NLP and Machine Learning models (TF-IDF, embeddings, classifiers).
 
-## Quick start
+---
+
+## Project Overview
+
+This project aims to:
+- Detect hate speech, offensive content, and normal text
+- Simulate a **real-time moderation system**
+- Apply automatic actions (publish, warn, delete, ban)
+- Provide a simple Flask web interface
+
+---
+
+## Quick Start
 
 ```bash
 pip install -r requirements.txt
 python app.py
-# → http://localhost:5000
-```
-
-## Plug in your real model
-
-Edit `model/predict.py` — uncomment the joblib section and point `MODEL_PATH`
-to your saved sklearn pipeline (LinearSVC + TF-IDF). The function signature is:
-
-```python
-def predict(text: str) -> tuple[str, float]:
-    # returns (label, confidence)
-    # label ∈ {"hate", "offensive", "normal"}
-```
-
-## Decision rules
-
-| Label      | Occurrences | Action          |
-|------------|-------------|-----------------|
-| normal     | any         | ✅ Publish       |
-| offensive  | 1st–2nd     | ⚠️ Warn          |
-| offensive  | 3rd+        | 🔒 Block user    |
-| hate       | 1st         | 🗑️ Delete        |
-| hate       | 2nd+        | 🔨 Ban user      |
-
-## Project structure
-
-```
-hate_speech_app/
-├── app.py              ← Flask routes + decision engine
-├── model/
-│   └── predict.py      ← model integration stub
-├── templates/
-│   └── index.html      ← single-page UI
-└── requirements.txt
-```
