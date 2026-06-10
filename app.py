@@ -58,11 +58,9 @@ def make_decision(user_id: str, label: str):
     if label == "hate_speech":                          # ✅ corrigé
         v["hate"] += 1
         v["count"] += 1
-        if v["hate"] >= 2:
-            v["banned"] = True
-            stats["banned_users"] += 1
-            return "ban", "2+ hate messages → permanent ban"
-        return "delete", "Hate speech detected → comment removed"
+        v["banned"] = True
+        stats["banned_users"] += 1
+        return "ban", "Hate speech detected → permanent ban"
 
     elif label == "offensive":
         v["count"] += 1
@@ -104,6 +102,13 @@ def post_comment():
 
     if not text:
         return jsonify({"error": "Empty comment"}), 400
+
+    # ─── Vérification ban AVANT classification ────────────────────────
+    if user_violations[user_id]["banned"]:
+        return jsonify({
+            "error": "banned",
+            "reason": "You are permanently banned and cannot post comments."
+        }), 403
 
     label, confidence = classify_comment(text)
     action, reason    = make_decision(user_id, label)
