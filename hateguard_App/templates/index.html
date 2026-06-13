@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HateGuard v3</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+<canvas id="bgc"></canvas>
+<div id="toast-root"></div>
+
+<!-- LOGIN -->
+<canvas id="login-canvas"></canvas>
+
+<!-- FLOATING 3D SOCIAL ORBS -->
+<div class="lorb lorb-1" aria-hidden="true">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="g1" cx="38%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity=".55"/>
+        <stop offset="45%" stop-color="currentColor" stop-opacity=".9"/>
+        <stop offset="100%" stop-color="currentColor" stop-opacity=".55"/>
+      </radialGradient>
+      <filter id="f1"><feGaussianBlur stdDeviation="1.5"/></filter>
+    </defs>
+    <circle cx="50" cy="50" r="48" fill="url(#g1)"/>
+    <circle cx="32" cy="28" r="10" fill="white" opacity=".18" filter="url(#f1)"/>
+    <text x="50" y="56" text-anchor="middle" font-size="36" font-family="system-ui" fill="white" opacity=".92">&#120143;</text>
+  </svg>
+</div>
+<div class="lorb lorb-2" aria-hidden="true">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="g2" cx="38%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity=".55"/>
+        <stop offset="45%" stop-color="currentColor" stop-opacity=".9"/>
+        <stop offset="100%" stop-color="currentColor" stop-opacity=".5"/>
+      </radialGradient>
+    </defs>
+    <circle cx="50" cy="50" r="48" fill="url(#g2)"/>
+    <circle cx="32" cy="28" r="10" fill="white" opacity=".18"/>
+    <text x="50" y="58" text-anchor="middle" font-size="34" font-family="system-ui" fill="white" opacity=".92">&#128172;</text>
+  </svg>
+</div>
+<div class="lorb lorb-3" aria-hidden="true">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="g3" cx="38%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity=".5"/>
+        <stop offset="45%" stop-color="currentColor" stop-opacity=".88"/>
+        <stop offset="100%" stop-color="currentColor" stop-opacity=".5"/>
+      </radialGradient>
+    </defs>
+    <circle cx="50" cy="50" r="48" fill="url(#g3)"/>
+    <circle cx="32" cy="28" r="10" fill="white" opacity=".15"/>
+    <text x="50" y="58" text-anchor="middle" font-size="32" font-family="system-ui" fill="white" opacity=".9">&#128240;</text>
+  </svg>
+</div>
+<div class="lorb lorb-4" aria-hidden="true">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="g4" cx="38%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity=".5"/>
+        <stop offset="45%" stop-color="currentColor" stop-opacity=".88"/>
+        <stop offset="100%" stop-color="currentColor" stop-opacity=".5"/>
+      </radialGradient>
+    </defs>
+    <circle cx="50" cy="50" r="48" fill="url(#g4)"/>
+    <circle cx="32" cy="28" r="10" fill="white" opacity=".15"/>
+    <text x="50" y="58" text-anchor="middle" font-size="30" font-family="system-ui" fill="white" opacity=".9">&#128276;</text>
+  </svg>
+</div>
+<div class="lorb lorb-5" aria-hidden="true">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="g5" cx="38%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity=".5"/>
+        <stop offset="45%" stop-color="currentColor" stop-opacity=".85"/>
+        <stop offset="100%" stop-color="currentColor" stop-opacity=".48"/>
+      </radialGradient>
+    </defs>
+    <circle cx="50" cy="50" r="48" fill="url(#g5)"/>
+    <circle cx="32" cy="28" r="10" fill="white" opacity=".15"/>
+    <text x="50" y="58" text-anchor="middle" font-size="30" font-family="system-ui" fill="white" opacity=".9">&#127759;</text>
+  </svg>
+</div>
+<div class="lorb lorb-6" aria-hidden="true">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="g6" cx="38%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity=".5"/>
+        <stop offset="45%" stop-color="currentColor" stop-opacity=".85"/>
+        <stop offset="100%" stop-color="currentColor" stop-opacity=".48"/>
+      </radialGradient>
+    </defs>
+    <circle cx="50" cy="50" r="48" fill="url(#g6)"/>
+    <circle cx="32" cy="28" r="10" fill="white" opacity=".14"/>
+    <text x="50" y="58" text-anchor="middle" font-size="30" font-family="system-ui" fill="white" opacity=".88">&#9993;</text>
+  </svg>
+</div>
+
+<div id="scr-login" class="scr on">
+
+  <!-- LEFT PANEL — Welcome text -->
+  <div class="lside-left">
+    <div class="lbrand">
+      <div class="lbrand-shield">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.5C16.5 22.15 20 17.25 20 12V6L12 2z" fill="rgba(255,255,255,.9)"/></svg>
+      </div>
+      <span class="lbrand-name">HateGuard</span>
+    </div>
+
+    <div class="lwelcome">
+      <div class="lwelcome-eyebrow">Plateforme de modération</div>
+      <h1 class="lwelcome-title">Good to see<br><span class="lwelcome-accent">you again</span></h1>
+      <p class="lwelcome-sub">Surveillez, analysez et protégez<br>vos communautés en ligne.</p>
+    </div>
+
+    <div class="lfeats">
+      <div class="lfeat">
+        <div class="lfeat-icon">&#9888;</div>
+        <div class="lfeat-body">
+          <div class="lfeat-title">Détection en temps réel</div>
+          <div class="lfeat-sub">Haine, toxicité, escalades automatiques</div>
+        </div>
+      </div>
+      <div class="lfeat">
+        <div class="lfeat-icon">&#128202;</div>
+        <div class="lfeat-body">
+          <div class="lfeat-title">Dashboard analytique</div>
+          <div class="lfeat-sub">Tendances, scores et distributions</div>
+        </div>
+      </div>
+      <div class="lfeat">
+        <div class="lfeat-icon">&#128737;</div>
+        <div class="lfeat-body">
+          <div class="lfeat-title">Contrôle admin</div>
+          <div class="lfeat-sub">Bannir, avertir, geler, verrouiller</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lsoc-row">
+      <div class="lsoc" title="X / Twitter">&#120143;</div>
+      <div class="lsoc" title="Facebook">f</div>
+      <div class="lsoc" title="LinkedIn">in</div>
+      <div class="lsoc" title="YouTube">&#9654;</div>
+      <div class="lsoc" title="Instagram">&#9678;</div>
+      <div class="lsoc" title="TikTok">&#9835;</div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL — Glass card -->
+  <div class="lcard">
+    <div class="lcard-glow" aria-hidden="true"></div>
+
+    <div class="lcard-header">
+      <div class="lcard-avatar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.5C16.5 22.15 20 17.25 20 12V6L12 2z" fill="currentColor"/></svg>
+      </div>
+      <div>
+        <div class="lcard-title">Connexion</div>
+        <div class="lcard-sub">Choisissez votre rôle</div>
+      </div>
+    </div>
+
+    <div class="lroles">
+      <div class="lrole sel" id="lr-u" onclick="pickRole('user')">
+        <div class="lrole-ico">&#128172;</div>
+        <div class="lrole-label">Utilisateur</div>
+        <div class="lrole-desc">Discussion</div>
+        <div class="lrole-check">&#10003;</div>
+      </div>
+      <div class="lrole" id="lr-a" onclick="pickRole('admin')">
+        <div class="lrole-ico">&#128737;</div>
+        <div class="lrole-label">Admin</div>
+        <div class="lrole-desc">Modération</div>
+        <div class="lrole-check">&#10003;</div>
+      </div>
+    </div>
+
+    <div class="linput-group">
+      <div class="linput-wrap">
+        <span class="linput-icon">&#128100;</span>
+        <input class="linput" id="l-name" placeholder="Nom d'utilisateur" value="user2" autocomplete="off">
+      </div>
+      <div class="linput-wrap" id="l-pin-wrap" style="display:none">
+        <span class="linput-icon">&#128274;</span>
+        <input class="linput" id="l-pin" placeholder="Code administrateur" type="password" autocomplete="off">
+      </div>
+    </div>
+
+    <button class="lbtn" onclick="doLogin()">
+      <span>Se connecter</span>
+      <span class="lbtn-arrow">&#8594;</span>
+    </button>
+
+    <div class="lhint">Demo : <b>admin</b> pour admin &nbsp;&middot;&nbsp; <b>user1/user2</b> pour user</div>
+  </div>
+
+</div>
+
+<!-- SHELL -->
+<div id="shell" class="scr">
+  <div class="topbar">
+    <div class="tlogo"><div class="tshield">🛡</div> HateGuard</div>
+    <div class="tsep"></div>
+    <span class="tbadge" id="t-rb">User</span>
+    <div class="tnav" id="t-anav" style="display:none">
+      <div class="tnav-item on" onclick="adminTab('live',this)">Live Feed</div>
+      <div class="tnav-item" onclick="adminTab('historique',this)">Historique</div>
+      <div class="tnav-item" onclick="adminTab('analytics',this)">Analytics</div>
+    </div>
+    <div class="sp"></div>
+    <!-- THEME SWITCHER -->
+    <div id="theme-btn" title="Changer le theme">
+      <button class="th-trigger" onclick="toggleThemePicker(event)">
+        <span class="th-icon" id="th-icon">&#9679;</span>
+        <span class="th-lbl" id="th-lbl">Theme</span>
+        <span class="th-arrow">&#8964;</span>
+      </button>
+      <div id="theme-picker">
+        <div class="th-opt" data-theme="mint" onclick="setTheme('mint',this)">
+          <span class="th-sw" style="background:linear-gradient(135deg,#86efac,#22c55e)"></span>
+          <span class="th-name">Mint</span>
+          <span class="th-check">&#10003;</span>
+        </div>
+        <div class="th-opt" data-theme="dark" onclick="setTheme('dark',this)">
+          <span class="th-sw" style="background:linear-gradient(135deg,#1e293b,#0f172a)"></span>
+          <span class="th-name">Dark</span>
+          <span class="th-check">&#10003;</span>
+        </div>
+        <div class="th-opt" data-theme="light" onclick="setTheme('light',this)">
+          <span class="th-sw" style="background:linear-gradient(135deg,#f8fafc,#e2e8f0)"></span>
+          <span class="th-name">Light</span>
+          <span class="th-check">&#10003;</span>
+        </div>
+        <div class="th-opt" data-theme="ocean" onclick="setTheme('ocean',this)">
+          <span class="th-sw" style="background:linear-gradient(135deg,#0c4a6e,#0ea5e9)"></span>
+          <span class="th-name">Ocean</span>
+          <span class="th-check">&#10003;</span>
+        </div>
+        <div class="th-opt" data-theme="sunset" onclick="setTheme('sunset',this)">
+          <span class="th-sw" style="background:linear-gradient(135deg,#fb923c,#f43f5e)"></span>
+          <span class="th-name">Sunset</span>
+          <span class="th-check">&#10003;</span>
+        </div>
+      </div>
+    </div>
+    <div class="tbell" id="t-bell" style="display:none" onclick="markRead()">🔔
+      <div class="tbellbadge" id="bell-b">0</div>
+    </div>
+    <div class="tuser" id="t-ui">
+      <div class="av" id="t-av">U</div>
+      <span id="t-un">user</span>
+      <div class="tdot"></div>
+    </div>
+    <button class="logout" onclick="doLogout()">Quitter</button>
+  </div>
+  <div id="views">
+
+    <!-- USER VIEW -->
+    <div id="v-user" class="view">
+      <div class="chat-col">
+        <div class="chat-hd">
+          <div>
+            <div style="font-size:14px;font-weight:700">🌍 Discussion Générale</div>
+            <div style="font-size:11px;color:var(--t2)" id="u-sub">Seuil escalade : 5 msgs toxiques</div>
+          </div>
+          <div class="online-pill">● 4 en ligne</div>
+        </div>
+        <div id="freeze-bar" style="display:none;background:rgba(91,141,246,.13);border-bottom:1px solid rgba(91,141,246,.35);padding:7px 16px;display:none;align-items:center;gap:10px;flex-shrink:0">
+          <span style="font-size:15px">❄️</span>
+          <span style="font-size:12px;font-weight:700;color:var(--blu)" id="freeze-bar-msg">Discussion gelée par l'administrateur</span>
+        </div>
+        <div class="msgs" id="msgs"></div>
+        <div class="compose">
+          <div class="compose-row">
+            <textarea class="cinput" id="cinput" rows="2" placeholder="Écrire un message…"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
+              oninput="document.getElementById('csend').disabled=!this.value.trim()"></textarea>
+            <button class="csend" id="csend" onclick="sendMsg()" disabled>➤</button>
+          </div>
+          <div class="chint" id="chint">Entrée pour envoyer · Shift+Entrée nouvelle ligne</div>
+        </div>
+      </div>
+      <div class="user-sb">
+        <div class="panel">
+          <div class="phead">Mon score de toxicité</div>
+          <div class="sring-wrap">
+            <div class="sring">
+              <svg width="58" height="58" viewBox="0 0 58 58">
+                <circle cx="29" cy="29" r="22" fill="none" stroke="#1a2030" stroke-width="5"/>
+                <circle cx="29" cy="29" r="22" fill="none" id="sarc" stroke="#3ecf8e" stroke-width="5"
+                  stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2" style="transition:all .5s"/>
+              </svg>
+              <div class="sring-num" id="spct">0%</div>
+            </div>
+            <div style="flex:1">
+              <div class="srow"><span style="color:var(--grn)">Normal</span><span id="sn">0%</span></div>
+              <div class="sbar" id="sbn" style="background:var(--grn);width:0%"></div>
+              <div class="srow" style="margin-top:5px"><span style="color:var(--ora)">Offensif</span><span id="so">0%</span></div>
+              <div class="sbar" id="sbo" style="background:var(--ora);width:0%"></div>
+              <div class="srow" style="margin-top:5px"><span style="color:var(--red)">Haineux</span><span id="sh">0%</span></div>
+              <div class="sbar" id="sbh" style="background:var(--red);width:0%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="phead">Mes statistiques</div>
+          <div class="stat4">
+            <div class="snum"><div class="snum-v" id="ms-s">0</div><div class="snum-l">Envoyés</div></div>
+            <div class="snum"><div class="snum-v" style="color:var(--grn)" id="ms-o">0</div><div class="snum-l">Approuvés</div></div>
+            <div class="snum"><div class="snum-v" style="color:var(--ora)" id="ms-w">0</div><div class="snum-l">Avertiss.</div></div>
+            <div class="snum"><div class="snum-v" style="color:var(--red)" id="ms-d">0</div><div class="snum-l">Supprimés</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="phead">Participants en ligne</div>
+          <div class="ol-list" id="ol-list"></div>
+        </div>
+        <div class="warn-box" id="uwarn"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN VIEW -->
+    <div id="v-admin" class="view">
+      <div class="admin-tabs">
+        <div class="atab on" id="at-live" onclick="adminTab('live',this)">Live Feed <span class="atab-cnt" id="atcnt">0</span></div>
+        <div class="atab" id="at-historique" onclick="adminTab('historique',this)">Historique Toxique</div>
+        <div class="atab" id="at-analytics" onclick="adminTab('analytics',this)">Analytics</div>
+      </div>
+      <div class="acontent">
+
+        <!-- LIVE TAB -->
+        <div class="atcontent on" id="at-live-c">
+          <div class="kpi-row">
+            <div class="kpi"><div class="kpi-v" id="k-tot">0</div><div class="kpi-l">Total</div><div class="kpi-d" style="color:var(--grn)">● Actif</div></div>
+            <div class="kpi"><div class="kpi-v" style="color:var(--red)" id="k-h">0</div><div class="kpi-l">Haineux</div><div class="kpi-d" id="k-hp" style="color:var(--t2)">0%</div></div>
+            <div class="kpi"><div class="kpi-v" style="color:var(--ora)" id="k-o">0</div><div class="kpi-l">Offensifs</div><div class="kpi-d" id="k-op" style="color:var(--t2)">0%</div></div>
+            <div class="kpi"><div class="kpi-v" style="color:var(--pur)" id="k-a">0</div><div class="kpi-l">Actions admin</div><div class="kpi-d" id="k-e" style="color:var(--t2)">0 escalades</div></div>
+            <div class="kpi"><div class="kpi-v" style="color:var(--yel)" id="k-tx">0%</div><div class="kpi-l">Taux toxique</div><div class="kpi-d" style="color:var(--t2)">seuil: 5 msgs</div></div>
+          </div>
+          <div class="admin-body">
+            <div class="admin-left">
+              <div class="feed-hd">
+                <div class="feed-lbl">Flux en temps réel</div>
+                <div class="fbtns">
+                  <button class="fb on" onclick="filt('all',this)">Tout</button>
+                  <button class="fb fnorm" onclick="filt('normal',this)">Normal</button>
+                  <button class="fb foff" onclick="filt('offensive',this)">Offensif</button>
+                  <button class="fb fhate" onclick="filt('hate',this)">Haineux</button>
+                </div>
+              </div>
+              <div id="admin-feed">
+                <!-- admin freeze banner -->
+                <div id="admin-freeze-banner" style="display:none;background:var(--blu2);border:1px solid rgba(91,141,246,.35);border-radius:9px;padding:12px 14px;margin-bottom:8px;align-items:center;gap:12px"></div>
+                <!-- escalation banner — permanent, toggled via JS -->
+                <div id="esc-banner" style="display:none;background:var(--red2);border:1px solid rgba(240,71,71,.35);border-radius:9px;padding:12px 14px;margin-bottom:8px">
+                  <div class="ebn-top">
+                    <span style="font-size:20px">🚨</span>
+                    <span class="ebn-title" id="ebn-title">Escalade de toxicité !</span>
+                  </div>
+                  <div class="ebn-body" id="ebn-body">Seuil atteint.</div>
+                  <div class="ebn-actions">
+                    <button class="ebn-btn ebn-freeze" id="btn-freeze" onclick="doAction('freeze')">❄ Geler</button>
+                    <button class="ebn-btn ebn-lock" id="btn-lock" onclick="doAction('lock')">🔒 Verrouiller</button>
+                    <button class="ebn-btn ebn-warn" id="btn-warn-all" onclick="doAction('warn-all')">⚠ Avertir tous</button>
+                    <button class="ebn-btn ebn-ok" id="btn-dismiss" onclick="dismissBanner()">✓ Compris</button>
+                  </div>
+                </div>
+                <div id="feed-cards"></div>
+              </div>
+            </div>
+            <div class="admin-right">
+              <div class="esc-w">
+                <div class="phead">🚨 Détecteur d'escalade</div>
+                <div class="esc-bar esc-ok" id="esc-bar">
+                  <div class="esc-icon">✅</div>
+                  <div><div class="esc-title">Thread normal</div><div class="esc-sub">Seuil: 5 msgs toxiques</div></div>
+                </div>
+                <div class="esc-grid">
+                  <div class="eg"><div class="eg-v" style="color:var(--grn)" id="eg-pct">0%</div><div class="eg-l">Taux toxique</div></div>
+                  <div class="eg"><div class="eg-v" style="color:var(--t2)" id="eg-toxic">0/5</div><div class="eg-l">Msgs toxiques</div></div>
+                  <div class="eg"><div class="eg-v" style="color:var(--t2)" id="eg-score">0.00</div><div class="eg-l">Score moyen</div></div>
+                  <div class="eg"><div class="eg-v" style="color:var(--t2)" id="eg-users">0</div><div class="eg-l">Répétitifs</div></div>
+                </div>
+                <div class="esc-acts">
+                  <button class="eab" id="eab-f" onclick="doAction('freeze')">❄ Geler la discussion</button>
+                  <button class="eab" id="eab-l" onclick="doAction('lock')">🔒 Verrouiller</button>
+                  <button class="eab" id="eab-s" onclick="doAction('shadow')">👁 Shadow modération</button>
+                  <button class="eab" id="eab-w" onclick="doAction('warn-all')">⚠ Avertir tous</button>
+                </div>
+              </div>
+              <div class="notif-card">
+                <div class="notif-hd">
+                  <span class="notif-hd-title">Notifications</span>
+                  <span class="ncnt" id="ncnt">0</span>
+                </div>
+                <div class="nlist" id="nlist"><div style="padding:10px 12px;font-size:11px;color:var(--t2)">Aucune alerte.</div></div>
+              </div>
+              <div class="tw">
+                <div class="phead" style="margin-bottom:8px">Tendance (20 derniers)</div>
+                <canvas id="trend-cv"></canvas>
+                <div class="leg">
+                  <span style="color:var(--grn)">● Normal</span>
+                  <span style="color:var(--ora)">● Offensif</span>
+                  <span style="color:var(--red)">● Haineux</span>
+                </div>
+              </div>
+              <div class="tw">
+                <div class="phead" style="margin-bottom:8px">Distribution</div>
+                <div id="dist-bars"></div>
+              </div>
+              <div class="log-card">
+                <div class="log-hd">Journal d'actions</div>
+                <div class="log-list" id="log-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HISTORIQUE TAB -->
+        <div class="atcontent" id="at-historique-c">
+          <div class="hist-wrap">
+            <div class="hist-summary">
+              <div class="hist-kpi"><div class="hist-kpi-v" style="color:var(--red)" id="hk-hate">0</div><div class="hist-kpi-l">Messages haineux</div></div>
+              <div class="hist-kpi"><div class="hist-kpi-v" style="color:var(--ora)" id="hk-off">0</div><div class="hist-kpi-l">Offensifs</div></div>
+              <div class="hist-kpi"><div class="hist-kpi-v" style="color:var(--pur)" id="hk-users">0</div><div class="hist-kpi-l">Utilisateurs toxiques</div></div>
+              <div class="hist-kpi"><div class="hist-kpi-v" style="color:var(--yel)" id="hk-esc">0</div><div class="hist-kpi-l">Escalades</div></div>
+            </div>
+
+            <!-- hate messages -->
+            <div class="hist-section">
+              <div class="hist-sec-hd">
+                <span style="font-size:16px">🚫</span>
+                <span class="hist-sec-title">Messages haineux détectés</span>
+                <span class="hist-sec-sub" id="hate-count-sub">0 message(s)</span>
+              </div>
+              <div id="hate-msgs-list"><div style="padding:16px;font-size:12px;color:var(--t2);text-align:center">Aucun message haineux détecté.</div></div>
+            </div>
+
+            <!-- user profiles -->
+            <div class="hist-section">
+              <div class="hist-sec-hd">
+                <span style="font-size:16px">👥</span>
+                <span class="hist-sec-title">Profils utilisateurs — analyse complète</span>
+                <span class="hist-sec-sub" id="user-count-sub">0 utilisateur(s)</span>
+              </div>
+              <div class="user-profile-grid" id="user-profiles"></div>
+            </div>
+
+            <!-- discussion control -->
+            <div class="hist-section">
+              <div class="hist-sec-hd">
+                <span style="font-size:16px">🎚</span>
+                <span class="hist-sec-title">Contrôle de la discussion</span>
+              </div>
+              <div class="disc-ctrl">
+                <div class="ctrl-status cst-open" id="ctrl-status">
+                  <div class="cst-icon">🟢</div>
+                  <div>
+                    <div class="cst-title" id="cs-title">Discussion ouverte</div>
+                    <div class="cst-sub" id="cs-sub">Tous les utilisateurs peuvent poster des messages.</div>
+                  </div>
+                </div>
+                <div class="ctrl-btns">
+                  <button class="ctrl-btn" id="cb-freeze" onclick="doAction('freeze')">
+                    <div class="ctrl-btn-icon">❄️</div>
+                    <div class="ctrl-btn-label">Geler</div>
+                    <div class="ctrl-btn-desc">Pause temporaire des nouveaux messages</div>
+                  </button>
+                  <button class="ctrl-btn" id="cb-lock" onclick="doAction('lock')">
+                    <div class="ctrl-btn-icon">🔒</div>
+                    <div class="ctrl-btn-label">Verrouiller</div>
+                    <div class="ctrl-btn-desc">Fermeture définitive des commentaires</div>
+                  </button>
+                  <button class="ctrl-btn" id="cb-shadow" onclick="doAction('shadow')">
+                    <div class="ctrl-btn-icon">👁</div>
+                    <div class="ctrl-btn-label">Shadow mod</div>
+                    <div class="ctrl-btn-desc">Messages toxiques invisibles aux autres</div>
+                  </button>
+                  <button class="ctrl-btn" id="cb-warn" onclick="doAction('warn-all')">
+                    <div class="ctrl-btn-icon">⚠️</div>
+                    <div class="ctrl-btn-label">Avertir tous</div>
+                    <div class="ctrl-btn-desc">Envoyer un avertissement collectif</div>
+                  </button>
+                </div>
+                <div class="ctrl-history">
+                  <div class="ctrl-history-hd">Historique des actions</div>
+                  <div class="ctrl-history-list" id="ctrl-hist-list"><div style="padding:10px 12px;font-size:11px;color:var(--t2)">Aucune action effectuée.</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANALYTICS TAB -->
+        <div class="atcontent" id="at-analytics-c">
+          <div class="an-grid">
+            <div class="an-card">
+              <div class="an-title">Matrice de confusion</div>
+              <canvas id="cm-cv" width="240" height="240"></canvas>
+            </div>
+            <div class="an-card">
+              <div class="an-title">Performance modèle</div>
+              <div class="perf-grid">
+                <div class="kpi"><div class="kpi-v" style="color:var(--red)">0.74</div><div class="kpi-l">Hate F1</div></div>
+                <div class="kpi"><div class="kpi-v" style="color:var(--ora)">0.92</div><div class="kpi-l">Offensive F1</div></div>
+                <div class="kpi"><div class="kpi-v" style="color:var(--grn)">0.89</div><div class="kpi-l">Neither F1</div></div>
+              </div>
+              <div class="an-title" style="margin-bottom:6px">Courbe ROC — hate</div>
+              <canvas id="roc-cv" height="120"></canvas>
+            </div>
+            <div class="an-card" style="grid-column:1/-1">
+              <div class="an-title">Historique de session</div>
+              <canvas id="hist-cv" height="85"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/bg.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+/* ══ THEME ENGINE ══ */
+var THEMES = {
+  mint:   { dot:'#16a34a', label:'Mint'   },
+  dark:   { dot:'#6366f1', label:'Dark'   },
+  light:  { dot:'#2563eb', label:'Light'  },
+  ocean:  { dot:'#0ea5e9', label:'Ocean'  },
+  sunset: { dot:'#f97316', label:'Sunset' }
+};
+
+function setTheme(name, el) {
+  document.documentElement.setAttribute('data-theme', name);
+  localStorage.setItem('hg-theme', name);
+  var t = THEMES[name] || THEMES.mint;
+  var icon = document.getElementById('th-icon');
+  var lbl  = document.getElementById('th-lbl');
+  if(icon){ icon.style.background = t.dot; icon.style.boxShadow = '0 0 6px '+t.dot; }
+  if(lbl) lbl.textContent = t.label;
+  document.querySelectorAll('.th-opt').forEach(function(o){ o.classList.toggle('active', o.dataset.theme===name); });
+  if(typeof window._bgSetTheme==='function') window._bgSetTheme(name);
+  closePicker();
+}
+
+function toggleThemePicker(e) {
+  e.stopPropagation();
+  var p = document.getElementById('theme-picker');
+  if(!p) return;
+  var open = p.classList.contains('open');
+  closePicker();
+  if(!open) p.classList.add('open');
+}
+function closePicker() {
+  var p = document.getElementById('theme-picker');
+  if(p) p.classList.remove('open');
+}
+document.addEventListener('click', closePicker);
+
+/* ══ LOGIN CANVAS ANIMATION ══ */
+(function(){
+  var cv = document.getElementById('login-canvas');
+  if(!cv) return;
+  var ctx = cv.getContext('2d');
+  var W=0, H=0, pts=[], currentTheme='mint';
+
+  var PALS = {
+    mint:   [[34,197,94],[16,185,129],[6,182,212],[52,211,153],[59,130,246]],
+    dark:   [[99,102,241],[167,139,250],[236,72,153],[59,130,246],[139,92,246]],
+    light:  [[37,99,235],[8,145,178],[124,58,237],[22,163,74],[245,158,11]],
+    ocean:  [[14,165,233],[6,182,212],[56,189,248],[99,102,241],[52,211,153]],
+    sunset: [[249,115,22],[244,63,94],[251,191,36],[234,88,12],[232,121,249]]
+  };
+
+  window._loginCanvasTheme = function(t){ currentTheme=t; };
+  var orig = window._bgSetTheme;
+  window._bgSetTheme = function(t){
+    currentTheme=t;
+    if(orig) orig(t);
+    if(typeof window._loginCanvasTheme==='function') window._loginCanvasTheme(t);
+  };
+
+  function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; }
+
+  function mkPt(){
+    return {
+      x:Math.random()*W, y:Math.random()*H,
+      vx:(Math.random()-.5)*.28, vy:(Math.random()-.5)*.28,
+      r:2+Math.random()*3.5,
+      phase:Math.random()*Math.PI*2, spd:0.008+Math.random()*0.018,
+      ci:Math.floor(Math.random()*5)
+    };
+  }
+  function init(){ pts=[]; var n=Math.max(28,Math.floor(W*H/15000)); for(var i=0;i<n;i++) pts.push(mkPt()); }
+
+  function rgb(pal,ci,a){ var c=pal[ci%pal.length]; return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')'; }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    var pal = PALS[currentTheme]||PALS.mint;
+    // lines
+    for(var i=0;i<pts.length;i++){
+      for(var j=i+1;j<pts.length;j++){
+        var dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, d=Math.sqrt(dx*dx+dy*dy);
+        if(d<125){ ctx.beginPath(); ctx.strokeStyle=rgb(pal,i,(1-d/125)*0.14); ctx.lineWidth=.7; ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke(); }
+      }
+    }
+    // nodes
+    pts.forEach(function(p,i){
+      p.x+=p.vx; p.y+=p.vy; p.phase+=p.spd;
+      if(p.x<-20)p.x=W+20; if(p.x>W+20)p.x=-20;
+      if(p.y<-20)p.y=H+20; if(p.y>H+20)p.y=-20;
+      var pulse=1+Math.sin(p.phase)*.22, alpha=0.2+Math.sin(p.phase+.8)*.07;
+      var grd=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*5*pulse);
+      grd.addColorStop(0,rgb(pal,p.ci,alpha*.5)); grd.addColorStop(1,rgb(pal,p.ci,0));
+      ctx.beginPath(); ctx.fillStyle=grd; ctx.arc(p.x,p.y,p.r*5*pulse,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.fillStyle=rgb(pal,p.ci,alpha+.1); ctx.arc(p.x,p.y,p.r*pulse,0,Math.PI*2); ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('mousemove',function(e){
+    pts.forEach(function(p){ var dx=p.x-e.clientX,dy=p.y-e.clientY,d=Math.sqrt(dx*dx+dy*dy); if(d<85&&d>0){ var f=(85-d)/85*.45; p.vx+=dx/d*f; p.vy+=dy/d*f; var spd=Math.sqrt(p.vx*p.vx+p.vy*p.vy); if(spd>1.6){p.vx=p.vx/spd*1.6;p.vy=p.vy/spd*1.6;} } });
+  });
+  window.addEventListener('resize',function(){resize();init();});
+  resize(); init(); draw();
+})();
+
+/* ══ INIT ON LOAD ══ */
+(function(){
+  var saved = localStorage.getItem('hg-theme') || 'mint';
+  var opt = document.querySelector('.th-opt[data-theme="' + saved + '"]');
+  setTheme(saved, opt);
+  // make theme-picker stop propagation
+  var p = document.getElementById('theme-picker');
+  if(p) p.addEventListener('click', function(e){ e.stopPropagation(); });
+})();
+</script>
+</html>
