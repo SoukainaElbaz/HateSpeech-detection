@@ -1,45 +1,85 @@
-# HateGuard v4 — Plateforme de Modération
+# HateGuard v5 — Moderation Platform
 
-## Corrections v4
+## Overview
 
-### Bug 1 — Scroll Historique Toxique ✅
-- L'onglet "Historique Toxique" défilait mal (bloqué en haut).
-- Fix : `.hist-wrap` passe de `display:flex` à `display:block` avec `-webkit-overflow-scrolling:touch`.
-- Résultat : scroll fluide de haut en bas sur toute la page historique.
+HateGuard v5 is a web-based content moderation platform designed to detect and manage toxic, offensive, and hateful messages in online discussions. It provides real-time analysis, moderation tools, user management, and administrative monitoring through an intuitive dashboard.
 
-### Bug 2 — Geler/Verrouiller n'arrêtait pas le simulateur ✅
-- Les messages aléatoires continuaient à arriver même après avoir gelé la discussion.
-- Fix : `runSim()` vérifie `G.isFrozen` en début de fonction et retourne immédiatement.
-- Résultat : dès que l'admin clique Geler ou Verrouiller, **plus aucun message** n'arrive dans le feed.
+## Features
 
-### Ajout — Bannière de gel dans le Live Feed Admin ✅
-- Quand la discussion est gelée, une bannière bleue apparaît en haut du feed admin confirmant que le simulateur est stoppé.
-- Bouton "Reprendre" pour dégeler la discussion.
+### User Side
+
+* Submit messages for analysis.
+* Real-time toxicity detection.
+* Classification into:
+
+  * Hate Speech
+  * Offensive Content
+  * Normal Content
+* Instant feedback on submitted messages.
+
+### Administrator Dashboard
+
+* Live Feed monitoring.
+* Toxic Message History.
+* Message moderation actions:
+
+  * Approve
+  * Warn
+  * Delete
+* User moderation actions:
+
+  * Warn User
+  * Ban User
+* Discussion control:
+
+  * Freeze Discussion
+  * Lock Discussion
+  * Resume Discussion
+* Real-time platform statistics.
+
+### Data Management
+
+* Session reset functionality.
+* Historical tracking of moderation actions.
 
 ## Installation
 
 ```bash
 pip install -r requirements.txt
 python app.py
-# → http://127.0.0.1:5000
 ```
 
-## Ajouter votre modèle
+Open:
 
-Copier `hate_speech_model.pkl` dans `model/`.
-
-## Structure
-
+```text
+http://127.0.0.1:5000
 ```
-hateguard_v4/
-├── app.py                    # Backend Flask
+
+## Model Setup
+
+Place your trained model file inside:
+
+```text
+model/
+└── hate_speech_model.pkl
+```
+
+If no model is available, HateGuard can use its built-in fallback detection system.
+
+## Project Structure
+
+```text
+hateguard_v5/
+├── app.py
 ├── requirements.txt
+├── README.md
 ├── model/
-│   └── hate_speech_model.pkl  ← votre modèle
+│   └── hate_speech_model.pkl
 ├── templates/
 │   └── index.html
 ├── static/
-│   ├── css/style.css
+│   ├── css/
+│   │   └── style.css
 │   └── js/
 │       ├── dashboard.js
 │       └── bg.js
@@ -47,27 +87,32 @@ hateguard_v4/
 └── exports/
 ```
 
-## API Endpoints
+## Main API Endpoints
 
-| Route | Méthode | Description |
-|-------|---------|-------------|
-| `/api/classify` | POST | Classifier un message |
-| `/api/classify/batch` | POST | Classifier plusieurs textes |
-| `/api/feed` | GET | Récupérer le flux |
-| `/api/state` | GET | État global |
-| `/api/action/warn/<id>` | POST | Avertir un message |
-| `/api/action/delete/<id>` | POST | Supprimer un message |
-| `/api/action/approve/<id>` | POST | Approuver |
-| `/api/action/warn-user/<user>` | POST | Avertir utilisateur |
-| `/api/action/ban-user/<user>` | POST | Bannir utilisateur |
-| `/api/escalation/action` | POST | freeze/lock/shadow/warn-all |
-| `/api/upload/csv` | POST | Importer CSV |
-| `/api/export/csv` | GET | Exporter décisions |
-| `/api/reset` | POST | Reset session |
+| Route                          | Method | Description                            |
+| ------------------------------ | ------ | -------------------------------------- |
+| `/api/classify`                | POST   | Classify a single message              |
+| `/api/classify/batch`          | POST   | Classify multiple messages             |
+| `/api/feed`                    | GET    | Retrieve live feed                     |
+| `/api/state`                   | GET    | Get platform state                     |
+| `/api/action/warn/<id>`        | POST   | Warn a message                         |
+| `/api/action/delete/<id>`      | POST   | Delete a message                       |
+| `/api/action/approve/<id>`     | POST   | Approve a message                      |
+| `/api/action/warn-user/<user>` | POST   | Warn a user                            |
+| `/api/action/ban-user/<user>`  | POST   | Ban a user                             |
+| `/api/escalation/action`       | POST   | Freeze, lock, shadow or global actions |
+| `/api/upload/csv`              | POST   | Import CSV data                        |
+| `/api/export/csv`              | GET    | Export moderation records              |
+| `/api/reset`                   | POST   | Reset session data                     |
 
-## Comptes démo
+## Demo Accounts
 
-| Nom | Rôle |
-|-----|------|
-| `admin` | Administrateur |
-| `user1`, `user2`, `user3`, `user4` | Utilisateur |
+| Username | Role          |
+| -------- | ------------- |
+| admin    | Administrator |
+| user1    | User          |
+
+
+## Educational Purpose
+
+This project was developed as part of an academic project in Artificial Intelligence and Data Engineering. It demonstrates the application of machine learning techniques to content moderation and online safety.
